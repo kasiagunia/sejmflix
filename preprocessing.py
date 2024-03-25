@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import pickle
+import networkx as nx
 
 
 def xml_to_dataframe(xml_file):
@@ -144,8 +146,9 @@ def egde_weights(df):
     for vote_id in tqdm(vote_ids):
         dep_yes = df[(df['vote_id'] == vote_id) & (df['Glos'] == 'Za')]['node_id'].values
         dep_no = df[(df['vote_id'] == vote_id) & (df['Glos'] == 'Przeciw')]['node_id'].values
-        dep_abstain = df[(df['vote_id'] == vote_id) & ((df['Glos'] == 'Wstrzymał się') | (df['Glos'] == 'Nie oddał głosu'))]['node_id'].values
-        dep_absent = df[(df['vote_id'] == vote_id) & (df['Glos'] == 'Nieobecny')]['node_id'].values
+        dep_abstain = df[(df['vote_id'] == vote_id) & (df['Glos'] == 'Wstrzymał się')]['node_id'].values
+        dep_no_vote = df[(df['vote_id'] == vote_id) & (df['Glos'] == 'Nie oddał głosu')]['node_id'].values
+#         dep_absent = df[(df['vote_id'] == vote_id) & (df['Glos'] == 'Nieobecny')]['node_id'].values
 
         # votes in favor
         for i in range(len(dep_yes)):
@@ -164,5 +167,28 @@ def egde_weights(df):
             for j in range(i+1, len(dep_abstain)):
                 common_votes[dep_abstain[i], dep_abstain[j]] += 1
                 common_votes[dep_abstain[j], dep_abstain[i]] += 1
+                
+        # didn't vote
+        for i in range(len(dep_no_vote)):
+            for j in range(i+1, len(dep_no_vote)):
+                common_votes[dep_no_vote[i], dep_no_vote[j]] += 1
+                common_votes[dep_no_vote[j], dep_no_vote[i]] += 1
 
     return common_votes / len(vote_ids)
+
+def create_graph(edge_matrix, df_node_atr, file_name=None):
+    G = nx.from_numpy_array(edge_matrix)
+    
+    for n1, n2, e_weight in G.edges.data('weight'):
+        G.edges[n1, n2]['distance'] = 1 / e_weight
+        
+    for i in range(len(df_node_atr)):
+        nr_leg, name, party = df_node_atr.iloc[i]
+        G.nodes[i]['deputy_num'] = list(nr_leg)
+        G.nodes[i]['name'] = list(name)
+        G.nodes[i]['party'] = party
+    
+    if file_name:
+        pickle.dump(G, open(f'{file_name}.pickle', 'wb'))
+    
+    return G
