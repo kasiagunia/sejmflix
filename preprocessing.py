@@ -176,7 +176,7 @@ def egde_weights(df):
 
     return common_votes / len(vote_ids)
 
-def create_graph(edge_matrix, df_node_atr, file_name=None):
+def create_graph(edge_matrix, df_node_atr, file_name=None, monthly=True):
     G = nx.from_numpy_array(edge_matrix)
     
     for n1, n2, e_weight in G.edges.data('weight'):
@@ -184,11 +184,15 @@ def create_graph(edge_matrix, df_node_atr, file_name=None):
         
     for i in range(len(df_node_atr)):
         nr_leg, name, party = df_node_atr.iloc[i]
-        G.nodes[i]['deputy_num'] = list(nr_leg)
-        G.nodes[i]['name'] = list(name)
+#         G.nodes[i]['deputy_num'] = list(nr_leg)
+#         G.nodes[i]['name'] = list(name)
         G.nodes[i]['party'] = party
     
     if file_name:
-        pickle.dump(G, open(f'{file_name}.pickle', 'wb'))
-    
+        if monthly:
+            pickle.dump(G, open(f'graphs/monthly/{file_name}.pickle', 'wb'))
+            nx.write_graphml(G, f"graphs_graphml/monthly/{file_name}.graphml")
+        else:
+            pickle.dump(G, open(f'graphs/{file_name}.pickle', 'wb'))
+            nx.write_graphml(G, f"graphs_graphml/{file_name}.graphml")
     return G
