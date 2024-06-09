@@ -136,7 +136,7 @@ def assign_attributes(df):
                                              'NazwiskoImie': pd.Series.unique, 
                                              'Klub': pd.Series.unique})
     df_node_atr['Klub'] = df_node_atr['Klub'].apply(lambda x: x[-1])
-    return df_node_atr
+    return df_node_atr.reset_index()
 
 def egde_weights(df):
     """Returns matrix with edge values."""
@@ -156,7 +156,7 @@ def egde_weights(df):
                 common_votes[dep_yes[i], dep_yes[j]] += 1
                 common_votes[dep_yes[j], dep_yes[i]] += 1
 
-        # votes in against
+        # votes against
         for i in range(len(dep_no)):
             for j in range(i+1, len(dep_no)):
                 common_votes[dep_no[i], dep_no[j]] += 1
@@ -179,13 +179,16 @@ def egde_weights(df):
 def create_graph(edge_matrix, df_node_atr, file_name=None, monthly=True):
     G = nx.from_numpy_array(edge_matrix)
     
-    for n1, n2, e_weight in G.edges.data('weight'):
-        G.edges[n1, n2]['distance'] = 1 / e_weight
+#     for n1, n2, e_weight in G.edges.data('weight'):
+#         G.edges[n1, n2]['distance'] = 1 / e_weight
         
-    for i in range(len(df_node_atr)):
-        nr_leg, name, party = df_node_atr.iloc[i]
-#         G.nodes[i]['deputy_num'] = list(nr_leg)
-#         G.nodes[i]['name'] = list(name)
+    for i in range(460):
+        row = df_node_atr[df_node_atr['node_id'] == i]
+        if row.size > 0:
+            node_id, nr_leg, name, party = row.values[0]
+        else:
+            print(node_id, file_name) # bug: it prints (node_id-1) node
+            party = ''
         G.nodes[i]['party'] = party
     
     if file_name:
